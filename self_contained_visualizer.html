@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Linear Algebra Concept Map</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    svg { width: 100vw; height: 100vh; }
+    circle { cursor: pointer; }
+    text { font: 12px sans-serif; pointer-events: none; }
+    #tooltip {
+      position: absolute;
+      background-color: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 8px;
+      font-size: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      pointer-events: none;
+      z-index: 1000;
+      display: none;
+      max-width: 300px;
+    }
+  </style>
+</head>
+<body>
+  <svg></svg>
+
+  <script>
+    // Embedded data
+    const conceptsData = [
+      { id: "LFUN", parent_id: "", description: "Linear function" },
+      { id: "LIVAR", parent_id: "LFUN", description: "Linear Independent variable" },
+      { id: "LDVAR", parent_id: "LFUN", description: "Linear Dependent variable" },
+      { id: "LRUL", parent_id: "LFUN", description: "Linear Rule" },
+      { id: "LIOP", parent_id: "LFUN", description: "Linear Input-output pair" },
+      { id: "LIV", parent_id: "LFUN", description: "Linear Initial value" },
+      { id: "LROC", parent_id: "LFUN", description: "Rate of change of a linear function" },
+      { id: "LIN", parent_id: "LIOP", description: "Linear input" },
+      { id: "LOUT", parent_id: "LIOP", description: "Linear output" },
+      { id: "LEQN2", parent_id: "", description: "Linear Equation in Two Variables" },
+      { id: "LSOL2", parent_id: "LEQN2", description: "Solution to a linear equation" },
+      { id: "ymxb", parent_id: "LEQN2", description: "y = mx + b Form" },
+      { id: "x", parent_id: "mx", description: "Variable 1" },
+      { id: "y", parent_id: "ymxb", description: "Variable 2" },
+      { id: "m", parent_id: "mx", description: "Coefficient of the linear term" },
+      { id: "b", parent_id: "mxb", description: "Constant term" },
+      { id: "mx", parent_id: "mxb", description: "Linear term" },
+      { id: "mxb", parent_id: "ymxb", description: "RHS" },
+      { id: "COORDP", parent_id: "", description: "Coordinate plane" },
+      { id: "LG", parent_id: "COORDP", description: "Lines in the coordinate plane (non-vertical)" },
+      { id: "AXIS1", parent_id: "COORDP", description: "Horizontal axis" },
+      { id: "AXIS2", parent_id: "COORDP", description: "Vertical axis" },
+      { id: "C1C2", parent_id: "COORDP", description: "Coordinates of a point in the coordinate plane" },
+      { id: "COORD1", parent_id: "C1C2", description: "First coordinate" },
+      { id: "COORD2", parent_id: "C1C2", description: "Second coordinate" },
+      { id: "INT2", parent_id: "LG", description: "Vertical intercept" },
+      { id: "SLP", parent_id: "LG", description: "Slope of a Line" },
+      { id: "LGR", parent_id: "LG", description: "The second coordinate of a point on the graph that corresponds to a given first coordinate" },
+      { id: "LP", parent_id: "LG", description: "Point on a line" }
+    ];
+
+    const connectionsData = [
+      { source: "b", target: "INT2", label: "The parameter b in an equation of the form y = mx + b corresponds to the vertical intercept of the graph of the equation" },
+      { source: "LDVAR", target: "y", label: "y is the dependent variable when a linear function is represented by an equation of the form y = mx + b" },
+      { source: "LDVAR", target: "AXIS2", label: "the dependent variable of a linear function corresponds to the vertical axis" },
+      { source: "LEQN2", target: "LG", label: "The graph of an equation of the form y = mx + b is a straight line" },
+      { source: "LFUN", target: "LEQN2", label: "Linear functions can be represented by an equation of the form y = mx + b" },
+      { source: "LFUN", target: "LG", label: "The graph of a linear function is a straight line" },
+      { source: "LIN", target: "LIVAR", label: "The independent variable is the variable that corresponds to the inputs of a function" },
+      { source: "LIOP", target: "LRUL", label: "The rule of a linear function tells you how to produce input-output pairs" },
+      { source: "LIOP", target: "LSOL2", label: "An input-output pair for a linear function corresponds to the solution to a linear equation in two variables that represents the function" },
+      { source: "LIOP", target: "LP", label: "An input-output pair for a linear function corresponds to the coordinates of a point on the line that represents it" },
+      { source: "LIV", target: "LOUT", label: "The initial value is the output when the input is zero" },
+      { source: "LIV", target: "b", label: "The initial value of a linear function corresponds to the parameter b in an equation of the form y = mx + b that represents the function" },
+      { source: "LIV", target: "INT2", label: "The initial value of a linear function corresponds to the vertical intercept of the graph that represents the function" },
+      { source: "LIVAR", target: "x", label: "x is the independent variable when a linear function is represented by an equation of the form y = mx + b" },
+      { source: "LIVAR", target: "AXIS1", label: "The independent variable of a linear function corresponds to the horizontal axis" },
+      { source: "LOUT", target: "LDVAR", label: "The dependent variable is the variable that corresponds to the outputs of a function" },
+      { source: "LROC", target: "m", label: "The rate of change of a linear function corresponds to the parameter m in an equation of the form y = mx + b that represents the function" },
+      { source: "LROC", target: "SLP", label: "The rate of change of a linear function corresponds to the slope of a line that represents the function" },
+      { source: "LRUL", target: "ymxb", label: "For a linear function represented by an equation of the form y = mx+b, mx_1 +b is the output for input x_1" },
+      { source: "LRUL", target: "LGR", label: "For a linear function represented by a line in the coordinate plane the y-coordinate of the point on the graph is the output for the corresponding input" },
+      { source: "LSOL2", target: "x", label: "A solution to the equation includes a value for the first variable that corresponds to a value for the second variable" },
+      { source: "LSOL2", target: "LP", label: "The coordinates of a point on a line in the coordinate plane represents a solution to the corresponding linear equation" },
+      { source: "m", target: "SLP", label: "The parameter m in an equation of the form y = mx + b corresponds to the slope of the graph of the equation" },
+      { source: "x", target: "AXIS1", label: "The variable x in an equation of the form y = mx + b usually corresponds to the horizontal axis" },
+      { source: "y", target: "AXIS2", label: "the variable y in an equation of the form y = mx + b corresponds to the vertical axis" },
+      { source: "ymxb", target: "LGR", label: "The coordinates of a point on the graph of the equation y = mx+b are (x, mx+b)" }
+    ];
+
+    // Function to convert flat data to hierarchical JSON
+    function dataToHierarchicalJson(data) {
+      const nodes = new Map();
+      
+      // First pass: Create all nodes
+      data.forEach(row => {
+        if (row.id && row.id.trim() !== '') {
+          nodes.set(row.id, {
+            id: row.id,
+            description: row.description,
+            children: []
+          });
+        }
+      });
+      
+      // Second pass: Build hierarchy
+      let root = null;
+      data.forEach(row => {
+        if (row.id && row.id.trim() !== '') {
+          if (!row.parent_id || row.parent_id.trim() === '') {
+            // This is a top-level node
+            if (!root) {
+              // Create a root node if it doesn't exist
+              root = {
+                id: "root",
+                description: "Root",
+                children: []
+              };
+              nodes.set("root", root);
+            }
+            root.children.push(nodes.get(row.id));
+          } else {
+            const parent = nodes.get(row.parent_id);
+            if (parent) {
+              parent.children.push(nodes.get(row.id));
+            }
+          }
+        }
+      });
+
+      if (!root) {
+        // If no root was created, create one with all nodes as children
+        root = {
+          id: "root",
+          description: "Root",
+          children: Array.from(nodes.values())
+        };
+      }
+      
+      return root;
+    }
+
+    const nodeData = new Map();
+    const tooltip = d3.select("body")
+      .append("div")
+      .attr("id", "tooltip");
+
+    function initializeNodes(node, parent = null, depth = 0) {
+      nodeData.set(node.id, { 
+        parent, 
+        expanded: false, 
+        depth, 
+        description: node.description 
+      });
+      if (node.children) {
+        node.children.forEach(child => initializeNodes(child, node.id, depth + 1));
+      }
+    }
+
+    function getColorForDepth(depth) {
+      const baseColor = d3.color("#69b3a2");
+      const hsl = d3.hsl(baseColor);
+      const lightness = Math.min(0.9, 0.3 + depth * 0.15);
+      return d3.hsl(hsl.h, hsl.s, lightness).toString();
+    }
+
+    function isPositionOccupied(x, y, existingNodes, minDistance = 60) {
+      return existingNodes.some(node => {
+        const dx = node.x - x;
+        const dy = node.y - y;
+        return Math.sqrt(dx * dx + dy * dy) < minDistance;
+      });
+    }
+
+    function findSuitablePosition(parentX, parentY, existingNodes, radius = 100) {
+      for (let angle = 0; angle < 2 * Math.PI; angle += Math.PI / 8) {
+        const x = parentX + radius * Math.cos(angle);
+        const y = parentY + radius * Math.sin(angle);
+        if (!isPositionOccupied(x, y, existingNodes)) {
+          return { x, y };
+        }
+      }
+      return findSuitablePosition(parentX, parentY, existingNodes, radius + 20);
+    }
+
+    function findPositionsForChildren(parentX, parentY, existingNodes, numberOfChildren) {
+      const preferredDistance = 150;
+      const minSeparation = 50;
+      const maxTries = 10;
+
+      let avgDx = 0;
+      let avgDy = 0;
+      existingNodes.forEach(node => {
+        avgDx += node.x - parentX;
+        avgDy += node.y - parentY;
+      });
+
+      if (existingNodes.length > 0) {
+        avgDx /= existingNodes.length;
+        avgDy /= existingNodes.length;
+      }
+
+      let baseAngle = Math.atan2(-avgDy, -avgDx);
+      if (existingNodes.length === 0 || isNaN(baseAngle)) {
+        baseAngle = Math.random() * 2 * Math.PI;
+      }
+
+      const spread = Math.PI / 2;
+      const startAngle = baseAngle - spread / 2;
+      const angleStep = spread / Math.max(1, numberOfChildren - 1);
+
+      const positions = [];
+
+      for (let i = 0; i < numberOfChildren; i++) {
+        let angle = startAngle + i * angleStep;
+        let tries = 0;
+        let x, y;
+
+        do {
+          const distance = preferredDistance + tries * 20;
+          x = parentX + distance * Math.cos(angle);
+          y = parentY + distance * Math.sin(angle);
+          tries++;
+        } while (
+          tries < maxTries &&
+          existingNodes.some(node => {
+            const dx = node.x - x;
+            const dy = node.y - y;
+            return Math.sqrt(dx * dx + dy * dy) < minSeparation;
+          })
+        );
+
+        positions.push({ x, y });
+      }
+
+      return positions;
+    }
+
+    function updateGraph() {
+      const nodes = [];
+      const links = [];
+      const visibleCrossLinks = [];
+
+      function isVisible(id) {
+        const data = nodeData.get(id);
+        if (!data.parent) return true;
+        let currentId = id;
+        while (currentId !== "root") {
+          const currentData = nodeData.get(currentId);
+          const parentData = nodeData.get(currentData.parent);
+          if (!parentData.expanded) return false;
+          currentId = currentData.parent;
+        }
+        return true;
+      }
+
+      nodeData.forEach((data, id) => {
+        if (isVisible(id)) {
+          const node = { id, depth: data.depth, description: data.description };
+          if (data.x !== undefined) {
+            node.fx = data.x;
+            node.fy = data.y;
+          }
+          nodes.push(node);
+          if (data.parent) {
+            links.push({ source: data.parent, target: id, type: 'hierarchical' });
+          }
+        }
+      });
+
+      connectionsData.forEach(link => {
+        if (isVisible(link.source) && isVisible(link.target)) {
+          visibleCrossLinks.push({
+            source: link.source,
+            target: link.target,
+            type: 'cross',
+            label: link.label
+          });
+        }
+      });
+
+      render(nodes, [...links, ...visibleCrossLinks]);
+    }
+
+    function render(nodes, links) {
+      const svg = d3.select("svg");
+      svg.selectAll("*").remove();
+
+      const defs = svg.append("defs");
+
+      const linkGroup = svg.append("g");
+      const linkLabelGroup = svg.append("g");
+      const nodeGroup = svg.append("g");
+
+      const simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(150))
+        .force("charge", d3.forceManyBody().strength(-300))
+        .force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2))
+        .force("collision", d3.forceCollide().radius(40))
+        .alphaDecay(0.1);
+
+      const link = linkGroup.selectAll("line")
+        .data(links)
+        .join("line")
+        .attr("stroke", d => d.type === 'cross' ? "#ff7f0e" : "#aaa")
+        .attr("stroke-dasharray", d => d.type === 'cross' ? "5,5" : "")
+        .attr("stroke-width", d => d.type === 'cross' ? 1.5 : 1);
+
+      const linkLabel = linkLabelGroup.selectAll("g")
+        .data(links.filter(l => l.type === 'cross'))
+        .join("g")
+        .attr("class", "link-label")
+        .style("opacity", 0)
+        .style("pointer-events", "none");
+
+      linkLabel.append("rect")
+        .attr("fill", "white")
+        .attr("rx", 4)
+        .attr("ry", 4);
+
+      linkLabel.append("text")
+        .text(d => d.label)
+        .attr("font-size", "12px")
+        .attr("text-anchor", "middle")
+        .each(function(d) {
+          const bbox = this.getBBox();
+          d3.select(this.parentNode).select("rect")
+            .attr("x", -bbox.width/2 - 4)
+            .attr("y", -bbox.height/2 - 2)
+            .attr("width", bbox.width + 8)
+            .attr("height", bbox.height + 4);
+        });
+
+      const node = nodeGroup.selectAll("g")
+        .data(nodes)
+        .join("g")
+        .call(g => g.append("circle")
+          .attr("r", 20)
+          .attr("fill", d => getColorForDepth(d.depth))
+          .on("click", (event, d) => {
+            nodes.forEach(n => {
+              const data = nodeData.get(n.id);
+              data.x = n.x;
+              data.y = n.y;
+            });
+
+            const data = nodeData.get(d.id);
+            data.expanded = !data.expanded;
+
+            if (data.expanded) {
+              const parentX = d.x;
+              const parentY = d.y;
+              function findNodeById(node, id) {
+                if (node.id === id) return node;
+                if (node.children) {
+                  for (const child of node.children) {
+                    const found = findNodeById(child, id);
+                    if (found) return found;
+                  }
+                }
+                return null;
+              }
+
+              const nodeInGraph = findNodeById(graphData, d.id);
+              if (nodeInGraph?.children) {
+                const existingNodes = nodes.filter(n => n.id !== d.id);
+                const childNodes = nodeInGraph.children.filter(child => {
+                  const childData = nodeData.get(child.id);
+                  return childData && !childData.x;
+                });
+
+                const positions = findPositionsForChildren(parentX, parentY, existingNodes, childNodes.length);
+
+                childNodes.forEach((child, index) => {
+                  const childData = nodeData.get(child.id);
+                  const pos = positions[index];
+                  childData.x = pos.x;
+                  childData.y = pos.y;
+                  existingNodes.push({ x: pos.x, y: pos.y });
+                });
+              }
+            }
+
+            updateGraph();
+          })
+          .on("mouseover", (event, d) => {
+            tooltip
+              .style("display", "block")
+              .style("left", (event.pageX + 10) + "px")
+              .style("top", (event.pageY + 10) + "px")
+              .text(d.description);
+
+            linkLabel.style("opacity", l => (l.source.id === d.id || l.target.id === d.id) ? 1 : 0);
+          })
+          .on("mousemove", (event) => {
+            tooltip
+              .style("left", (event.pageX + 10) + "px")
+              .style("top", (event.pageY + 10) + "px");
+          })
+          .on("mouseout", () => {
+            tooltip.style("display", "none");
+            linkLabel.style("opacity", 0);
+          }))
+        .call(g => g.append("text")
+          .attr("y", 4)
+          .attr("text-anchor", "middle")
+          .text(d => d.id));
+
+      simulation.on("tick", () => {
+        link
+          .attr("x1", d => d.source.x)
+          .attr("y1", d => d.source.y)
+          .attr("x2", d => d.target.x)
+          .attr("y2", d => d.target.y);
+
+        linkLabel.attr("transform", d => {
+          const midX = (d.source.x + d.target.x) / 2;
+          const midY = (d.source.y + d.target.y) / 2;
+          return `translate(${midX},${midY})`;
+        });
+
+        node.attr("transform", d => `translate(${d.x},${d.y})`);
+      });
+    }
+
+    // Initialize the visualization
+    const graphData = dataToHierarchicalJson(conceptsData);
+    initializeNodes(graphData);
+    nodeData.get("root").expanded = true;
+    updateGraph();
+  </script>
+</body>
+</html> 
